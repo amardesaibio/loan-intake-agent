@@ -17,6 +17,7 @@ import httpx
 from langchain_core.messages import AIMessage, HumanMessage
 from agent.state import LoanAgentState
 from core.config import get_settings
+from core.llm import call_llm
 from db import repository as repo
 
 logger = logging.getLogger(__name__)
@@ -122,28 +123,14 @@ _THINK_RE = _re.compile(r'<think>[\s\S]*?</think>', _re.IGNORECASE)
 
 
 async def _extract_fields(msg: str, context_field: str = None) -> dict:
-    """Use LLM to extract any application fields from a free-form message.
-    context_field: the field name we most recently asked for (helps with short answers).
-    """
-    settings = get_settings()
+    """Use LLM to extract any application fields from a free-form message."""
     context_hint = ""
     if context_field:
         label = context_field.replace("_", " ")
         context_hint = f"Context: the previous question was asking for the applicant's {label}."
     prompt = EXTRACTION_PROMPT.format(msg=msg, context_hint=context_hint)
     try:
-        async with httpx.AsyncClient(timeout=90.0) as client:
-            resp = await client.post(
-                f"{settings.ollama_base_url}/api/generate",
-                json={
-                    "model":   settings.ollama_model,
-                    "prompt":  prompt,
-                    "stream":  False,
-                    "options": {"temperature": 0.1, "num_predict": 2048},
-                },
-            )
-            raw = resp.json().get("response", "{}")
-        # Strip any <think>...</think> blocks the model may have generated
+        raw = await call_llm(prompt, temperature=0.1)
         text = _THINK_RE.sub("", raw).strip()
         logger.info(f"Extraction response (first 300 chars): {text[:300]}")
         start, end = text.find("{"), text.rfind("}") + 1

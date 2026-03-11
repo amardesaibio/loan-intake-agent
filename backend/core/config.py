@@ -16,6 +16,10 @@ class Settings(BaseSettings):
     max_upload_size_mb: int = 20
     environment: str = "development"
     log_level: str = "INFO"
+    # LLM provider: "ollama" (local) or "claude" (cloud)
+    llm_provider: str = "ollama"
+    anthropic_api_key: str = ""
+    claude_model: str = "claude-haiku-4-5-20251001"
     langfuse_public_key: str = "pk-lf-loan-intake-key"
     langfuse_secret_key: str = "sk-lf-loan-intake-key"
     langfuse_host: str = "http://langfuse:3000"

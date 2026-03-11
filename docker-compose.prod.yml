@@ -1,0 +1,74 @@
+# ============================================================
+# docker-compose.prod.yml — DigitalOcean cloud overrides
+#
+# Usage:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+#
+# This override:
+#   - Uses pre-built images from GHCR instead of building locally
+#   - Switches the LLM from Ollama to Claude API
+#   - Strips dev-only tooling (Dozzle, pgAdmin, RedisInsight)
+#   - Points Langfuse to the public host URL
+# ============================================================
+
+services:
+
+  backend:
+    image: ghcr.io/${GITHUB_REPOSITORY}/backend:${IMAGE_TAG:-latest}
+    build: !reset null
+    volumes: []          # no hot-reload in prod
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://loanuser:${POSTGRES_PASSWORD}@postgres:5432/loandb
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - LLM_PROVIDER=claude
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - CLAUDE_MODEL=claude-haiku-4-5-20251001
+      - MOCK_HUB_URL=http://mock-hub:9000
+      - JWT_SECRET=${JWT_SECRET}
+      - ENVIRONMENT=production
+      - UPLOAD_DIR=/app/uploads
+      - LANGFUSE_PUBLIC_KEY=${LANGFUSE_PUBLIC_KEY:-pk-lf-loan-intake-key}
+      - LANGFUSE_SECRET_KEY=${LANGFUSE_SECRET_KEY:-sk-lf-loan-intake-key}
+      - LANGFUSE_HOST=http://langfuse:3000
+
+  frontend:
+    image: ghcr.io/${GITHUB_REPOSITORY}/frontend:${IMAGE_TAG:-latest}
+    build: !reset null
+    environment:
+      - VITE_API_BASE_URL=http://${DO_HOST}:8080/api
+      - VITE_WS_URL=ws://${DO_HOST}:8000
+
+  mock-hub:
+    image: ghcr.io/${GITHUB_REPOSITORY}/mock-hub:${IMAGE_TAG:-latest}
+    build: !reset null
+
+  postgres:
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+  redis:
+    command: redis-server --requirepass ${REDIS_PASSWORD} --appendonly yes
+
+  langfuse:
+    environment:
+      DATABASE_URL: postgresql://loanuser:${POSTGRES_PASSWORD}@postgres:5432/langfuse
+      NEXTAUTH_URL: http://${DO_HOST}:3030
+      NEXTAUTH_SECRET: ${LANGFUSE_NEXTAUTH_SECRET}
+      SALT: ${LANGFUSE_SALT}
+      LANGFUSE_INIT_PROJECT_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-pk-lf-loan-intake-key}
+      LANGFUSE_INIT_PROJECT_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-sk-lf-loan-intake-key}
+      LANGFUSE_INIT_USER_PASSWORD: ${LANGFUSE_ADMIN_PASSWORD:-admin123}
+
+  # Strip dev tools in production
+  dozzle:
+    profiles: ["dev"]
+
+  pgadmin:
+    profiles: ["dev"]
+
+  redisinsight:
+    profiles: ["dev"]
+
+  # Ollama not needed — using Claude API
+  ollama:
+    profiles: ["dev"]
