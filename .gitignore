@@ -1,0 +1,54 @@
+# ── Python ───────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+.venv/
+venv/
+env/
+.env
+*.env
+.env.*
+!.env.example
+
+# ── Node / Frontend ───────────────────────────────────────────
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.local
+
+# ── Uploads (user files — never commit) ──────────────────────
+uploads/
+
+# ── Docker volumes / runtime ─────────────────────────────────
+postgres_data/
+redis_data/
+kong_data/
+uploads_data/
+
+# ── IDE / OS ──────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# ── Logs ──────────────────────────────────────────────────────
+*.log
+logs/
+
+# ── Claude Code local settings (may contain credentials) ─────
+.claude/
+
+# ── Secrets (never commit) ───────────────────────────────────
+*.pem
+*.key
+*.crt
+secrets/
